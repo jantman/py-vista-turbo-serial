@@ -41,6 +41,8 @@ from string import ascii_uppercase
 from enum import Enum
 from functools import total_ordering
 
+from py_vista_turbo_serial.events import SystemEvent
+
 logger = logging.getLogger(__name__)
 
 
@@ -49,13 +51,6 @@ class PartitionState(Enum):
     HOME = 1
     DISARMED = 2
     AWAY = 3
-
-
-class SystemEventType(Enum):
-
-    PERIMETER_ALARM = 0
-    ENTRY_EXIT_ALARM = 1
-    FAULT = 0x2b
 
 
 @total_ordering
@@ -380,14 +375,16 @@ class SystemEventNotification(MessagePacket):
     def __init__(self, raw_message: str, data: str, from_panel: bool):
         super().__init__(raw_message, data, from_panel)
         self._event_type: int = int(data[0:2], 16)
-        self.event_type: SystemEventType = SystemEventType(self._event_type)
         self.zone_or_user: int = int(data[2:4])
+        self.event_type: SystemEvent = SystemEvent.event_for_code(
+            self._event_type, self.zone_or_user
+        )
         self.minute: int = int(data[4:6])
         self.hour: int = int(data[6:8])
         self.day: int = int(data[8:10])
         self.month: int = int(data[10:12])
 
     def __repr__(self):
-        return (f'<SystemEvent(Type={self.event_type.name} Zone/User='
+        return (f'<SystemEvent(Type={self.event_type.NAME} Zone/User='
                 f'{self.zone_or_user} Time={self.minute}:{self.hour} '
                 f'{self.month}/{self.day})>')

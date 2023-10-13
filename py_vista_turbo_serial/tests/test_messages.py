@@ -42,8 +42,9 @@ from py_vista_turbo_serial.messages import (
     UnknownMessage, ArmAwayMessage, ArmHomeMessage, DisarmMessage,
     ArmingStatusRequest, ArmingStatusReport, PartitionState, ZoneStatusRequest,
     ZoneStatusReport, ZoneState, ZonePartitionRequest, ZonePartitionReport,
-    SystemEventNotification, SystemEventType
+    SystemEventNotification
 )
+from py_vista_turbo_serial.events import FaultEvent
 
 
 class TestZoneState:
@@ -299,4 +300,4 @@ class TestSystemEventNotification:
         assert res.hour == 10
         assert res.day == 21
         assert res.month == 2
-        assert res.event_type == SystemEventType.FAULT
+        assert isinstance(res.event_type, FaultEvent)

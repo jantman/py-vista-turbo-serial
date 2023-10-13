@@ -3,7 +3,7 @@ The latest version of this package is available at:
 <http://github.com/jantman/py-vista-turbo-serial>
 
 ##################################################################################
-Copyright 2023 Jason Antman <jason@jasonantman.com> <http://www.jasonantman.com>
+Copyright 2018 Jason Antman <jason@jasonantman.com> <http://www.jasonantman.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the “Software”), to deal in
@@ -35,39 +35,53 @@ Jason Antman <jason@jasonantman.com> <http://www.jasonantman.com>
 ##################################################################################
 """
 
-from setuptools import setup, find_packages
-from py_vista_turbo_serial.version import VERSION, PROJECT_URL
+import logging
+from typing import List, Generator
 
-with open('README.rst') as file:
-    long_description = file.read()
+from serial import Serial
 
-requires = [
-    'pyserial==3.5',
-]
+from py_vista_turbo_serial.messages import MessagePacket
 
-# @TODO - see: https://pypi.org/pypi?%3Aaction=list_classifiers
-classifiers = [
-    'Development Status :: 1 - Planning',
-    'License :: OSI Approved :: MIT License',
-    'Programming Language :: Python',
-    'Programming Language :: Python :: 3 :: Only',
-    'Programming Language :: Python :: 3.7',
-    'Programming Language :: Python :: 3.8',
-    'Programming Language :: Python :: 3.9',
-    'Programming Language :: Python :: 3.10',
-    'Programming Language :: Python :: 3.11',
-]
+logger = logging.getLogger(__name__)
 
-setup(
-    name='py-vista-turbo-serial',
-    version=VERSION,
-    author='Jason Antman',
-    author_email='jason@jasonantman.com',
-    packages=find_packages(),
-    url=PROJECT_URL,
-    description='Python library and daemon to interface with Honeywell/Ademco Vista Turbo alarm panels via RS232 serial.',
-    long_description=long_description,
-    install_requires=requires,
-    keywords="honeywell ademco resideo vista alarm burglar fire serial rs232",
-    classifiers=classifiers
-)
+
+class Communicator:
+    """
+    Class for handling communication with the alarm.
+    """
+
+    def __init__(self, port: str, timeout_sec: int = 1):
+        self._port: str = port
+        logger.debug('Opening serial connection on %s', port)
+        self.serial: Serial = Serial(
+            port, baudrate=9600, timeout=timeout_sec
+        )  # default 8N1
+        logger.debug('Serial is connected')
+        self.outgoing: List[str] = []
+
+    def __del__(self):
+        logger.debug('Closing serial port')
+        self.serial.close()
+        logger.debug('Serial port closed')
+
+    def send_message(self, msg: str):
+        logger.debug('Enqueueing message: %s', msg)
+        self.outgoing.append(msg)
+
+    def communicate(self) -> Generator[MessagePacket, None, None]:
+        logger.info('Entering communicate() loop')
+        # at start, if we have a message to send, send it
+        if self.outgoing:
+            msg = self.outgoing.pop(0)
+            logger.info('Sending message: %s', msg)
+            self.serial.write(msg + '\r\n')
+        # this might be better with select(), but let's try this...
+        while True:
+            # @TODO handle exception on timeout
+            line = self.serial.readline().decode().strip()
+            logger.debug('Got line: %s', line)
+            yield MessagePacket.parse(line)
+            if self.outgoing:
+                msg = self.outgoing.pop(0)
+                logger.info('Sending message: %s', msg)
+                self.serial.write(msg + '\r\n')
