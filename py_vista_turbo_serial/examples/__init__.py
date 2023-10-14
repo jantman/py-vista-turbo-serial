@@ -3,7 +3,7 @@ The latest version of this package is available at:
 <http://github.com/jantman/py-vista-turbo-serial>
 
 ##################################################################################
-Copyright 2023 Jason Antman <jason@jasonantman.com> <http://www.jasonantman.com>
+Copyright 2018 Jason Antman <jason@jasonantman.com> <http://www.jasonantman.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the “Software”), to deal in
@@ -34,43 +34,3 @@ AUTHORS:
 Jason Antman <jason@jasonantman.com> <http://www.jasonantman.com>
 ##################################################################################
 """
-
-from setuptools import setup, find_packages
-from py_vista_turbo_serial.version import VERSION, PROJECT_URL
-
-with open('README.rst') as file:
-    long_description = file.read()
-
-requires = [
-    'pyserial==3.5',
-]
-
-# @TODO - see: https://pypi.org/pypi?%3Aaction=list_classifiers
-classifiers = [
-    'Development Status :: 1 - Planning',
-    'License :: OSI Approved :: MIT License',
-    'Programming Language :: Python',
-    'Programming Language :: Python :: 3 :: Only',
-    'Programming Language :: Python :: 3.7',
-    'Programming Language :: Python :: 3.8',
-    'Programming Language :: Python :: 3.9',
-    'Programming Language :: Python :: 3.10',
-    'Programming Language :: Python :: 3.11',
-]
-
-setup(
-    name='py-vista-turbo-serial',
-    version=VERSION,
-    author='Jason Antman',
-    author_email='jason@jasonantman.com',
-    packages=find_packages(),
-    url=PROJECT_URL,
-    description='Python library and daemon to interface with Honeywell/Ademco Vista Turbo alarm panels via RS232 serial.',
-    long_description=long_description,
-    install_requires=requires,
-    extras_require={
-        'examples': ['requests'],  # dependencies for examples/
-    },
-    keywords="honeywell ademco resideo vista alarm burglar fire serial rs232",
-    classifiers=classifiers
-)
