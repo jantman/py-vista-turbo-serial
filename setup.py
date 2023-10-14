@@ -72,5 +72,11 @@ setup(
         'examples': ['requests'],  # dependencies for examples/
     },
     keywords="honeywell ademco resideo vista alarm burglar fire serial rs232",
-    classifiers=classifiers
+    classifiers=classifiers,
+    entry_points={
+        "console_scripts": [
+            "pyvista-monitor=py_vista_turbo_serial.state_monitor:main",
+            "pyvista-pushover=py_vista_turbo_serial.examples.pushover_example:main",
+        ]
+    },
 )
