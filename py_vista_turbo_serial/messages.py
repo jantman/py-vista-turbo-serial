@@ -51,6 +51,7 @@ class PartitionState(Enum):
     HOME = 1
     DISARMED = 2
     AWAY = 3
+    N = 4
 
 
 @total_ordering
@@ -277,6 +278,8 @@ class ArmingStatusReport(MessagePacket):
                 self.partition_state[idx + 1] = PartitionState.DISARMED
             elif val == 'A':
                 self.partition_state[idx + 1] = PartitionState.AWAY
+            elif val == 'N':
+                self.partition_state[idx + 1] = PartitionState.N
             else:
                 raise InvalidMessageException(
                     f'Invalid partition state code "{val}" in Arming '
