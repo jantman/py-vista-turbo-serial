@@ -74,7 +74,7 @@ class Communicator:
         if self.outgoing:
             msg = self.outgoing.pop(0)
             logger.info('Sending message: %s', msg)
-            self.serial.write(bytes(msg + '\r\n', 'ascii'))
+            self.serial.write(bytes(msg, 'ascii') + b'\r\n')
         # this might be better with select(), but let's try this...
         while True:
             # @TODO handle exception on timeout
