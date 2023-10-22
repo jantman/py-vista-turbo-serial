@@ -79,6 +79,8 @@ class Communicator:
         while True:
             # @TODO handle exception on timeout
             line = self.serial.readline().decode().strip()
+            if line == '':
+                continue
             logger.debug('Got line: %s', line)
             yield MessagePacket.parse(line)
             if self.outgoing:
