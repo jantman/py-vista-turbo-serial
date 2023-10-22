@@ -84,4 +84,4 @@ class Communicator:
             if self.outgoing:
                 msg = self.outgoing.pop(0)
                 logger.info('Sending message: %s', msg)
-                self.serial.write(msg + '\r\n')
+                self.serial.write(bytes(msg, 'ascii') + b'\r\n')
