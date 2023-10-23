@@ -35,9 +35,9 @@ Jason Antman <jason@jasonantman.com> <http://www.jasonantman.com>
 ##################################################################################
 """
 
+from typing import Union
 
-class UnknownEventException(Exception):
-    pass
+EventTypes: type = Union['SystemEvent', 'UnknownEvent']
 
 
 class SystemEvent:
@@ -55,11 +55,22 @@ class SystemEvent:
     @classmethod
     def event_for_code(
         cls, event_code: int, zone_or_user: int
-    ) -> 'SystemEvent':
+    ) -> EventTypes:
         for klass in cls.__subclasses__():
             if klass.CODE == event_code:
                 return klass(zone_or_user)
-        raise UnknownEventException(f'Unknown event code: {event_code}')
+        return UnknownEvent(event_code, zone_or_user)
+
+
+class UnknownEvent:
+
+    def __init__(self, code: int, zone_or_user: int):
+        self.zone_or_user: int = zone_or_user
+        self.code: int = code
+
+    def __repr__(self) -> str:
+        return (f'<UnknownEvent(code={self.code}, code_hex=0x{self.code:02x},'
+                f' zone_or_user={self.zone_or_user})>')
 
 
 class AlarmEvent(SystemEvent):
