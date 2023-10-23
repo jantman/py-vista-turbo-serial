@@ -371,9 +371,9 @@ class ZonePartitionReport(MessagePacket):
 
 class SystemEventNotification(MessagePacket):
 
-    MSG_TYPES: List[str] = ['N']
+    MSG_TYPES: List[str] = ['N', 'n']
 
-    MSG_SUBTYPES: List[str] = ['Q']
+    MSG_SUBTYPES: List[str] = ['Q', 'q']
 
     def __init__(self, raw_message: str, data: str, from_panel: bool):
         super().__init__(raw_message, data, from_panel)
