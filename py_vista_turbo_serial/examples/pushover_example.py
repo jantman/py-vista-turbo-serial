@@ -80,7 +80,8 @@ class PushoverNotifier(threading.Thread):
 
     def __init__(
         self, store: MessageStore, app_token: str, user_key: str,
-        batch_seconds: int = 10, proxies: Optional[dict] = None
+        batch_seconds: int = 10, proxies: Optional[dict] = None,
+        dry_run: bool = False
     ):
         super().__init__()
         self.daemon = True
@@ -89,6 +90,7 @@ class PushoverNotifier(threading.Thread):
         self._user_key: str = user_key
         self._batch_seconds: int = batch_seconds
         self._proxies: Optional[dict] = proxies
+        self._dry_run: bool = dry_run
 
     def _do_notify_pushover(self, title, message, sound=None):
         """Build Pushover API request arguments and call _send_pushover"""
@@ -104,6 +106,9 @@ class PushoverNotifier(threading.Thread):
         if sound is not None:
             d['data']['sound'] = sound
         logger.info('Sending Pushover notification: %s', d)
+        if self._dry_run:
+            logger.warning('DRY RUN - don\'t actually send')
+            return
         for i in range(0, 2):
             try:
                 self._send_pushover(d)
@@ -170,7 +175,9 @@ class PushoverNotifier(threading.Thread):
 
 class PushoverAlarmNotifier:
 
-    def __init__(self, port: str, batch_seconds: int = 10):
+    def __init__(
+        self, port: str, batch_seconds: int = 10, dry_run: bool = False
+    ):
         self.store: MessageStore = MessageStore()
         self.store.add(
             'PushoverAlarmNotifier initializing at ' +
@@ -180,7 +187,8 @@ class PushoverAlarmNotifier:
             store=self.store,
             app_token=os.environ['PUSHOVER_APIKEY'],
             user_key=os.environ['PUSHOVER_USERKEY'],
-            batch_seconds=batch_seconds
+            batch_seconds=batch_seconds,
+            dry_run=dry_run
         )
         self.notifier.start()
         self.panel: Communicator = Communicator(port=port)
@@ -218,6 +226,10 @@ def parse_args(argv):
         type=int, default=10,
         help='How many seconds to wait before sending batches of messages '
              'to Pushover; default: 10'
+    )
+    p.add_argument(
+        '-d', '--dry-run', dest='dry_run', action='store_true',
+        default=False, help='dry run - don\'t actually send pushover'
     )
     p.add_argument(
         'PORT', action='store', type=str, default='/dev/ttyUSB0',
@@ -263,7 +275,7 @@ def main():
         set_log_info(logger)
 
     PushoverAlarmNotifier(
-        args.PORT, batch_seconds=args.seconds
+        args.PORT, batch_seconds=args.seconds, dry_run=args.dry_run
     ).run()
 
 
