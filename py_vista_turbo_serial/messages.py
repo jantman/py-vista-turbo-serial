@@ -41,7 +41,7 @@ from string import ascii_uppercase
 from enum import Enum
 from functools import total_ordering
 
-from py_vista_turbo_serial.events import SystemEvent
+from py_vista_turbo_serial.events import SystemEvent, EventTypes
 
 logger = logging.getLogger(__name__)
 
@@ -379,7 +379,7 @@ class SystemEventNotification(MessagePacket):
         super().__init__(raw_message, data, from_panel)
         self._event_type: int = int(data[0:2], 16)
         self.zone_or_user: int = int(data[2:4])
-        self.event_type: SystemEvent = SystemEvent.event_for_code(
+        self.event_type: EventTypes = SystemEvent.event_for_code(
             self._event_type, self.zone_or_user
         )
         self.minute: int = int(data[4:6])
