@@ -225,3 +225,13 @@ class FaultEvent(SystemEvent):
 class FaultRestoreEvent(SystemEvent):
     NAME: str = 'Fault Restore'
     CODE: int = 0x2c
+
+
+class LowBatteryExtended(SystemEvent):
+    NAME: str = 'Low Battery'
+    CODE: int = 0x29
+
+
+class LowBatteryRestoreExtended(SystemEvent):
+    NAME: str = 'Low Battery Restore'
+    CODE: int = 0x2a
