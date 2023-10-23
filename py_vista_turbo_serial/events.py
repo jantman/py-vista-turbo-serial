@@ -67,6 +67,7 @@ class UnknownEvent:
     def __init__(self, code: int, zone_or_user: int):
         self.zone_or_user: int = zone_or_user
         self.code: int = code
+        self.NAME: str = self.__repr__()
 
     def __repr__(self) -> str:
         return (f'<UnknownEvent(code={self.code}, code_hex=0x{self.code:02x},'
