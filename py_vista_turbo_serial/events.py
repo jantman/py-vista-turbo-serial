@@ -35,9 +35,17 @@ Jason Antman <jason@jasonantman.com> <http://www.jasonantman.com>
 ##################################################################################
 """
 
-from typing import Union
+from typing import Union, Dict, Optional
 
 EventTypes: type = Union['SystemEvent', 'UnknownEvent']
+
+
+def subclasses_recursive(cls):
+    direct = cls.__subclasses__()
+    indirect = []
+    for subclass in direct:
+        indirect.extend(subclasses_recursive(subclass))
+    return direct + indirect
 
 
 class SystemEvent:
@@ -46,19 +54,30 @@ class SystemEvent:
 
     CODE: int = 0
 
-    def __init__(self, zone_or_user: int):
+    IS_ZONE: bool = True
+
+    def __init__(self, zone_or_user: int, zone_or_user_name: Optional[str]):
         self.zone_or_user: int = zone_or_user
+        self.zone_or_user_name: Optional[str] = zone_or_user_name
 
     def __repr__(self) -> str:
-        return f'<{self.NAME}(zone_or_user={self.zone_or_user})>'
+        if not self.IS_ZONE:
+            return f'<{self.NAME}(user={self.zone_or_user})>'
+        if self.zone_or_user_name is None:
+            return f'<{self.NAME}(zone_num={self.zone_or_user})>'
+        return (f'<{self.NAME}(zone={self.zone_or_user} '
+                f'"{self.zone_or_user_name}")>')
 
     @classmethod
     def event_for_code(
-        cls, event_code: int, zone_or_user: int
+        cls, event_code: int, zone_or_user: int, zones: Dict[int, str]
     ) -> EventTypes:
-        for klass in cls.__subclasses__():
+        for klass in subclasses_recursive(cls):
             if klass.CODE == event_code:
-                return klass(zone_or_user)
+                if klass.IS_ZONE:
+                    return klass(zone_or_user, zones.get(zone_or_user))
+                else:
+                    return klass(zone_or_user, None)
         return UnknownEvent(event_code, zone_or_user)
 
 
@@ -144,7 +163,7 @@ class OtherTroubleRestore(SystemEvent):
 
 
 class ArmDisarmEvent(SystemEvent):
-    pass
+    IS_ZONE: bool = False
 
 
 class ArmStay(ArmDisarmEvent):
@@ -185,6 +204,7 @@ class AcRestore(SystemEvent):
 class AlarmCancel(SystemEvent):
     NAME: str = 'Alarm Cancel'
     CODE: int = 0x20
+    IS_ZONE: bool = False
 
 
 class OtherBypass(SystemEvent):

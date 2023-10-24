@@ -123,13 +123,15 @@ class MessagePacket:
     MSG_SUBTYPES: List[str] = []
 
     def __init__(
-        self, raw_message: str, data: str = '', from_panel: bool = True
+        self, raw_message: str, zones: Dict[int, str], data: str = '',
+        from_panel: bool = True
     ):
         """
         raw_message cannot be an empty string and should be just one line
         without leading or trailing whitespace or terminator (CR/LF)
         """
         self.raw_message: str = raw_message
+        self._zones: Dict[int, str] = zones
         self._data: str = data
         self.from_panel: bool = from_panel
 
@@ -158,7 +160,7 @@ class MessagePacket:
         return msgtype, subtype, data
 
     @classmethod
-    def parse(cls, raw_message: str) -> 'MessagePacket':
+    def parse(cls, raw_message: str, zones: Dict[int, str]) -> 'MessagePacket':
         msgtype: str
         subtype: str
         data: str
@@ -167,11 +169,12 @@ class MessagePacket:
         for klass in cls.__subclasses__():
             if msgtype in klass.MSG_TYPES and subtype in klass.MSG_SUBTYPES:
                 return klass(
-                    raw_message=raw_message, data=data, from_panel=from_panel
+                    raw_message=raw_message, data=data, from_panel=from_panel,
+                    zones=zones
                 )
         return UnknownMessage(
             raw_message=raw_message, data=data, from_panel=from_panel,
-            msg_type=msgtype, msg_subtype=subtype
+            msg_type=msgtype, msg_subtype=subtype, zones=zones
         )
 
     @classmethod
@@ -185,10 +188,10 @@ class MessagePacket:
 class UnknownMessage(MessagePacket):
 
     def __init__(
-        self, raw_message: str, data: str, from_panel: bool, msg_type: str,
+        self, raw_message: str, data: str, zones: Dict[int, str], from_panel: bool, msg_type: str,
         msg_subtype: str
     ):
-        super().__init__(raw_message, data, from_panel)
+        super().__init__(raw_message, zones, data, from_panel)
         self.msg_type: str = msg_type
         self.msg_subtype: str = msg_subtype
 
@@ -203,8 +206,11 @@ class ArmAwayMessage(MessagePacket):
 
     MSG_SUBTYPES: List[str] = ['A', 'a']
 
-    def __init__(self, raw_message: str, data: str, from_panel: bool):
-        super().__init__(raw_message, data, from_panel)
+    def __init__(
+        self, raw_message: str, zones: Dict[int, str], data: str,
+        from_panel: bool
+    ):
+        super().__init__(raw_message, zones, data, from_panel)
         self.user: int = int(data[0:2], 16)
         self.user_code: str = data[2:]
 
@@ -219,8 +225,11 @@ class ArmHomeMessage(MessagePacket):
 
     MSG_SUBTYPES: List[str] = ['H', 'h']
 
-    def __init__(self, raw_message: str, data: str, from_panel: bool):
-        super().__init__(raw_message, data, from_panel)
+    def __init__(
+        self, raw_message: str, zones: Dict[int, str], data: str,
+        from_panel: bool
+    ):
+        super().__init__(raw_message, zones, data, from_panel)
         self.user: int = int(data[0:2], 16)
         self.user_code: str = data[2:]
 
@@ -235,8 +244,11 @@ class DisarmMessage(MessagePacket):
 
     MSG_SUBTYPES: List[str] = ['D', 'd']
 
-    def __init__(self, raw_message: str, data: str, from_panel: bool):
-        super().__init__(raw_message, data, from_panel)
+    def __init__(
+        self, raw_message: str, zones: Dict[int, str], data: str,
+        from_panel: bool
+    ):
+        super().__init__(raw_message, zones, data, from_panel)
         self.user: int = int(data[0:2], 16)
         self.user_code: str = data[2:]
 
@@ -251,8 +263,11 @@ class ArmingStatusRequest(MessagePacket):
 
     MSG_SUBTYPES: List[str] = ['s']
 
-    def __init__(self, raw_message: str, data: str, from_panel: bool):
-        super().__init__(raw_message, data, from_panel)
+    def __init__(
+        self, raw_message: str, zones: Dict[int, str], data: str,
+        from_panel: bool
+    ):
+        super().__init__(raw_message, zones, data, from_panel)
 
     def __repr__(self):
         return f'<ArmingStatusRequest("{self.raw_message}")>'
@@ -268,8 +283,11 @@ class ArmingStatusReport(MessagePacket):
 
     MSG_SUBTYPES: List[str] = ['S']
 
-    def __init__(self, raw_message: str, data: str, from_panel: bool):
-        super().__init__(raw_message, data, from_panel)
+    def __init__(
+        self, raw_message: str, zones: Dict[int, str], data: str,
+        from_panel: bool
+    ):
+        super().__init__(raw_message, zones, data, from_panel)
         self.partition_state: Dict[int, PartitionState] = {}
         for idx, val in enumerate(data):
             if val == 'H':
@@ -302,8 +320,11 @@ class ZoneStatusRequest(MessagePacket):
 
     MSG_SUBTYPES: List[str] = ['s']
 
-    def __init__(self, raw_message: str, data: str, from_panel: bool):
-        super().__init__(raw_message, data, from_panel)
+    def __init__(
+        self, raw_message: str, zones: Dict[int, str], data: str,
+        from_panel: bool
+    ):
+        super().__init__(raw_message, zones, data, from_panel)
 
     def __repr__(self):
         return f'<ZoneStatusRequest("{self.raw_message}")>'
@@ -319,8 +340,11 @@ class ZoneStatusReport(MessagePacket):
 
     MSG_SUBTYPES: List[str] = ['S']
 
-    def __init__(self, raw_message: str, data: str, from_panel: bool):
-        super().__init__(raw_message, data, from_panel)
+    def __init__(
+        self, raw_message: str, zones: Dict[int, str], data: str,
+        from_panel: bool
+    ):
+        super().__init__(raw_message, zones, data, from_panel)
         self.zones: Dict[int, ZoneState] = {}
         for idx, val in enumerate(data):
             self.zones[idx + 1] = ZoneState(int(val, 16))
@@ -332,14 +356,59 @@ class ZoneStatusReport(MessagePacket):
         return f'<ZoneStatusReport({s})>'
 
 
+class ZoneDescriptorRequest(MessagePacket):
+
+    MSG_TYPES: List[str] = ['Z']
+
+    MSG_SUBTYPES: List[str] = ['D']
+
+    def __init__(
+        self, raw_message: str, zones: Dict[int, str], data: str,
+        from_panel: bool
+    ):
+        super().__init__(raw_message, zones, data, from_panel)
+
+    def __repr__(self):
+        return f'<ZoneDescriptorRequest("{self.raw_message}")>'
+
+    @classmethod
+    def generate(cls) -> str:
+        return '08ZD009A'
+
+
+class ZoneDescriptorReport(MessagePacket):
+
+    MSG_TYPES: List[str] = ['z']
+
+    MSG_SUBTYPES: List[str] = ['d']
+
+    def __init__(
+        self, raw_message: str, zones: Dict[int, str], data: str,
+        from_panel: bool
+    ):
+        super().__init__(raw_message, zones, data, from_panel)
+        self.data: str = data
+        assert data[3] == '"'
+        assert data[-1] == '"'
+        self.zone_num: int = int(data[0:3])
+        self.zone_name: str = data[4:-2].strip()
+
+    def __repr__(self):
+        return (f'<ZoneDescriptorReport('
+                f'num={self.zone_num}, name="{self.zone_name}")>')
+
+
 class ZonePartitionRequest(MessagePacket):
 
     MSG_TYPES: List[str] = ['z']
 
     MSG_SUBTYPES: List[str] = ['p']
 
-    def __init__(self, raw_message: str, data: str, from_panel: bool):
-        super().__init__(raw_message, data, from_panel)
+    def __init__(
+        self, raw_message: str, zones: Dict[int, str], data: str,
+        from_panel: bool
+    ):
+        super().__init__(raw_message, zones, data, from_panel)
 
     def __repr__(self):
         return f'<ZonePartitionRequest("{self.raw_message}")>'
@@ -355,8 +424,11 @@ class ZonePartitionReport(MessagePacket):
 
     MSG_SUBTYPES: List[str] = ['P']
 
-    def __init__(self, raw_message: str, data: str, from_panel: bool):
-        super().__init__(raw_message, data, from_panel)
+    def __init__(
+        self, raw_message: str, zones: Dict[int, str], data: str,
+        from_panel: bool
+    ):
+        super().__init__(raw_message, zones, data, from_panel)
         self.partitions: Dict[int, int] = {}
         for idx, val in enumerate(data):
             self.partitions[idx + 1] = int(val)
@@ -375,12 +447,15 @@ class SystemEventNotification(MessagePacket):
 
     MSG_SUBTYPES: List[str] = ['Q', 'q']
 
-    def __init__(self, raw_message: str, data: str, from_panel: bool):
-        super().__init__(raw_message, data, from_panel)
+    def __init__(
+        self, raw_message: str, zones: Dict[int, str], data: str,
+        from_panel: bool
+    ):
+        super().__init__(raw_message, zones, data, from_panel)
         self._event_type: int = int(data[0:2], 16)
-        self.zone_or_user: int = int(data[2:4])
+        self.zone_or_user: int = int(data[2:4], 16) + 1
         self.event_type: EventTypes = SystemEvent.event_for_code(
-            self._event_type, self.zone_or_user
+            self._event_type, self.zone_or_user, zones
         )
         self.minute: int = int(data[4:6])
         self.hour: int = int(data[6:8])
@@ -388,6 +463,4 @@ class SystemEventNotification(MessagePacket):
         self.month: int = int(data[10:12])
 
     def __repr__(self):
-        return (f'<SystemEvent(Type={self.event_type.NAME} Zone/User='
-                f'{self.zone_or_user} Time={self.minute}:{self.hour} '
-                f'{self.month}/{self.day})>')
+        return self.event_type.__repr__()

@@ -42,7 +42,7 @@ from py_vista_turbo_serial.messages import (
     UnknownMessage, ArmAwayMessage, ArmHomeMessage, DisarmMessage,
     ArmingStatusRequest, ArmingStatusReport, PartitionState, ZoneStatusRequest,
     ZoneStatusReport, ZoneState, ZonePartitionRequest, ZonePartitionReport,
-    SystemEventNotification
+    SystemEventNotification, ZoneDescriptorRequest
 )
 from py_vista_turbo_serial.events import FaultEvent
 
@@ -261,6 +261,17 @@ class TestZoneStatusReport:
         assert res.zones == expected
 
 
+class TestZoneDescriptorRequest:
+
+    def test_to_panel(self):
+        res = MessagePacket.parse('08zd005A')
+        assert isinstance(res, ZoneDescriptorRequest)
+        assert res.from_panel is False
+
+    def test_generate(self):
+        assert ZoneDescriptorRequest.generate() == '08zd005A'
+
+
 class TestZonePartitionRequest:
 
     def test_to_panel(self):
@@ -295,7 +306,7 @@ class TestSystemEventNotification:
         )
         assert isinstance(res, SystemEventNotification)
         assert res._event_type == 0x2b
-        assert res.zone_or_user == 14
+        assert res.zone_or_user == 21
         assert res.minute == 23
         assert res.hour == 10
         assert res.day == 21

@@ -46,9 +46,7 @@ from time import sleep
 from datetime import datetime
 
 from py_vista_turbo_serial.communicator import Communicator
-from py_vista_turbo_serial.messages import (
-    MessagePacket, ArmingStatusRequest, ZoneStatusRequest
-)
+from py_vista_turbo_serial.messages import MessagePacket
 
 import requests
 
@@ -94,6 +92,9 @@ class PushoverNotifier(threading.Thread):
 
     def _do_notify_pushover(self, title, message, sound=None):
         """Build Pushover API request arguments and call _send_pushover"""
+        if self._dry_run:
+            logger.warning('DRY RUN - don\'t actually send')
+            return
         d = {
             'data': {
                 'token': self._app_token,
@@ -106,9 +107,6 @@ class PushoverNotifier(threading.Thread):
         if sound is not None:
             d['data']['sound'] = sound
         logger.info('Sending Pushover notification: %s', d)
-        if self._dry_run:
-            logger.warning('DRY RUN - don\'t actually send')
-            return
         for i in range(0, 2):
             try:
                 self._send_pushover(d)
@@ -183,6 +181,7 @@ class PushoverAlarmNotifier:
             'PushoverAlarmNotifier initializing at ' +
             datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
         )
+        self._dry_run: bool = dry_run
         self.notifier: PushoverNotifier = PushoverNotifier(
             store=self.store,
             app_token=os.environ['PUSHOVER_APIKEY'],
@@ -198,8 +197,6 @@ class PushoverAlarmNotifier:
             'PushoverAlarmNotifier starting run loop at ' +
             datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
         )
-        self.panel.send_message(ArmingStatusRequest.generate())
-        self.panel.send_message(ZoneStatusRequest.generate())
         message: MessagePacket
         dt: str
         for message in self.panel.communicate():
@@ -212,6 +209,9 @@ class PushoverAlarmNotifier:
             else:
                 self.store.add(str(message) + ' (' + dt + ')')
             """
+            if self._dry_run:
+                logger.info(str(message))
+                continue
             self.store.add(str(message) + ' (' + dt + ')')
 
 
@@ -239,19 +239,19 @@ def parse_args(argv):
     return args
 
 
-def set_log_info(l: logging.Logger):
+def set_log_info(lgr: logging.Logger):
     """set logger level to INFO"""
     set_log_level_format(
-        l,
+        lgr,
         logging.INFO,
         '%(asctime)s %(levelname)s:%(name)s:%(message)s'
     )
 
 
-def set_log_debug(l: logging.Logger):
+def set_log_debug(lgr: logging.Logger):
     """set logger level to DEBUG, and debug-level output format"""
     set_log_level_format(
-        l,
+        lgr,
         logging.DEBUG,
         "%(asctime)s [%(levelname)s %(filename)s:%(lineno)s - "
         "%(name)s.%(funcName)s() ] %(message)s"

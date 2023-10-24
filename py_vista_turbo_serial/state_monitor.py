@@ -39,19 +39,18 @@ Jason Antman <jason@jasonantman.com> <http://www.jasonantman.com>
 import sys
 import argparse
 import logging
-from typing import Dict, List, Set
+from typing import Dict, Set
 
 from py_vista_turbo_serial.communicator import Communicator
 from py_vista_turbo_serial.messages import (
     MessagePacket, ArmAwayMessage, ArmHomeMessage, DisarmMessage,
-    ArmingStatusRequest, ArmingStatusReport, PartitionState, ZoneStatusRequest,
-    ZoneStatusReport, ZoneState, ZonePartitionRequest, ZonePartitionReport,
+    ArmingStatusReport, PartitionState,
+    ZoneStatusReport, ZoneState, ZonePartitionReport,
     SystemEventNotification
 )
 from py_vista_turbo_serial.events import (
     AlarmEvent, OtherAlarmRestore, RfLowBattery, RfLowBatteryRestore,
-    OtherTrouble, OtherTroubleRestore, ArmDisarmEvent, ArmStay, Arm, Disarm,
-    LowBattery, LowBatteryRestore, AcFail, AcRestore, AlarmCancel,
+    OtherTrouble, OtherTroubleRestore, LowBattery, LowBatteryRestore,
     OtherBypass, OtherUnbypass, FaultEvent, FaultRestoreEvent, SystemEvent
 )
 
@@ -246,12 +245,6 @@ class StateMonitor:
         )
 
     def run(self):
-        # @TODO every N minutes/hours we want to re-send the status requests
-        #    and re-populate our stored state
-        # queue commands to get initial state
-        self.panel.send_message(ArmingStatusRequest.generate())
-        self.panel.send_message(ZoneStatusRequest.generate())
-        self.panel.send_message(ZonePartitionRequest.generate())
         is_ready: bool = False
         message: MessagePacket
         for message in self.panel.communicate():
@@ -329,19 +322,19 @@ def parse_args(argv):
     return args
 
 
-def set_log_info(l: logging.Logger):
+def set_log_info(lgr: logging.Logger):
     """set logger level to INFO"""
     set_log_level_format(
-        l,
+        lgr,
         logging.INFO,
         '%(asctime)s %(levelname)s:%(name)s:%(message)s'
     )
 
 
-def set_log_debug(l: logging.Logger):
+def set_log_debug(lgr: logging.Logger):
     """set logger level to DEBUG, and debug-level output format"""
     set_log_level_format(
-        l,
+        lgr,
         logging.DEBUG,
         "%(asctime)s [%(levelname)s %(filename)s:%(lineno)s - "
         "%(name)s.%(funcName)s() ] %(message)s"

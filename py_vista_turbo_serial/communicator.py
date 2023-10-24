@@ -36,11 +36,14 @@ Jason Antman <jason@jasonantman.com> <http://www.jasonantman.com>
 """
 
 import logging
-from typing import List, Generator
+from typing import List, Generator, Dict
 
 from serial import Serial
 
-from py_vista_turbo_serial.messages import MessagePacket
+from py_vista_turbo_serial.messages import (
+    MessagePacket, ArmingStatusRequest, ZoneStatusRequest,
+    ZoneDescriptorRequest, ZoneDescriptorReport
+)
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +60,12 @@ class Communicator:
             port, baudrate=9600, timeout=timeout_sec
         )  # default 8N1
         logger.debug('Serial is connected')
-        self.outgoing: List[str] = []
+        self.zones: Dict[int, str] = {}
+        self.outgoing: List[str] = [
+            ArmingStatusRequest.generate(),
+            ZoneDescriptorRequest.generate(),
+            ZoneStatusRequest.generate(),
+        ]
 
     def __del__(self):
         logger.debug('Closing serial port')
@@ -76,14 +84,28 @@ class Communicator:
             logger.info('Sending message: %s', msg)
             self.serial.write(bytes(msg, 'ascii') + b'\r\n')
         # this might be better with select(), but let's try this...
+        asked_for_zones: bool = False
+        have_zones: bool = False
+        zone_msg: str = ZoneDescriptorRequest.generate()
         while True:
             # @TODO handle exception on timeout
             line = self.serial.readline().decode().strip()
             if line == '':
                 continue
             logger.debug('Got line: %s', line)
-            yield MessagePacket.parse(line)
-            if self.outgoing:
+            pkt: MessagePacket = MessagePacket.parse(line, self.zones)
+            if isinstance(pkt, ZoneDescriptorReport):
+                self.zones[pkt.zone_num] = pkt.zone_name
+                if pkt.zone_num == 0:
+                    have_zones = True
+                    logger.info('Zones: %s', self.zones)
+            yield pkt
+            if (
+                self.outgoing and
+                ((not asked_for_zones) or (asked_for_zones and have_zones))
+            ):
                 msg = self.outgoing.pop(0)
                 logger.info('Sending message: %s', msg)
                 self.serial.write(bytes(msg, 'ascii') + b'\r\n')
+                if msg == zone_msg:
+                    asked_for_zones = True
